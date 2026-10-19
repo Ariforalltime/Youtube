@@ -47,16 +47,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install yt-dlp
 
-      - name: Start V2Ray Proxy (Optional)
+      - name: Configure and Start V2Ray
         env:
           V2RAY_CONFIG_BASE64: ${{ secrets.V2RAY_CONFIG_BASE64 }}
+          PROXY_URL: ${{ secrets.PROXY_URL }}
         run: |
           if [ -n "$V2RAY_CONFIG_BASE64" ]; then
             echo "$V2RAY_CONFIG_BASE64" | base64 -d > /etc/v2ray/config.json
             systemctl restart v2ray || v2ray run -config /etc/v2ray/config.json &
             sleep 3
-          else
-            echo "V2RAY_CONFIG_BASE64 is empty, skipping proxy setup."
           fi
 
       - name: Run Downloader
@@ -71,4 +70,3 @@ jobs:
           name: youtube-download
           path: downloads/
           retention-days: 1
-          
