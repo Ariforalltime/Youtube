@@ -48,22 +48,18 @@ jobs:
           pip install yt-dlp
 
       - name: Start V2Ray Proxy (Optional)
-        id: v2ray_step
         env:
           V2RAY_CONFIG_BASE64: ${{ secrets.V2RAY_CONFIG_BASE64 }}
         run: |
           if [ -n "$V2RAY_CONFIG_BASE64" ]; then
-            echo "Config found, starting V2Ray..."
             echo "$V2RAY_CONFIG_BASE64" | base64 -d > /etc/v2ray/config.json
             systemctl restart v2ray || v2ray run -config /etc/v2ray/config.json &
             sleep 3
-            echo "has_config=true" >> $GITHUB_OUTPUT
-          else
-            echo "No config found, skipping proxy."
-            echo "has_config=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Run Downloader
+        env:
+          PROXY_URL: ${{ secrets.PROXY_URL }}
         run: |
           python download.py --url "${{ github.event.inputs.url }}" --mode "${{ github.event.inputs.mode }}" --quality "${{ github.event.inputs.quality }}"
 
