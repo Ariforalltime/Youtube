@@ -1,0 +1,69 @@
+name: Download YouTube Media
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'YouTube Video/Playlist URL'
+        required: true
+        type: string
+      mode:
+        description: 'Download Mode'
+        required: true
+        default: 'video'
+        type: choice
+        options:
+          - video
+          - audio
+      quality:
+        description: 'Max Resolution Quality'
+        required: true
+        default: '1080'
+        type: choice
+        options:
+          - '720'
+          - '1080'
+          - '1440'
+          - '2160'
+          - 'best'
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies & FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg v2ray
+          python -m pip install --upgrade pip
+          pip install yt-dlp
+
+      - name: Start V2Ray Proxy (Optional)
+        if: ${{ secrets.V2RAY_CONFIG_BASE64 != '' }}
+        run: |
+          echo "${{ secrets.V2RAY_CONFIG_BASE64 }}" | base64 -d > /etc/v2ray/config.json
+          systemctl restart v2ray || v2ray run -config /etc/v2ray/config.json &
+          sleep 3
+
+      - name: Run Downloader
+        env:
+          PROXY_URL: ${{ secrets.PROXY_URL }}
+        run: |
+          python download.py --url "${{ github.event.inputs.url }}" --mode "${{ github.event.inputs.mode }}" --quality "${{ github.event.inputs.quality }}"
+
+      - name: Upload Downloaded File as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: youtube-download
+          path: downloads/
+          retention-days: 1
+          
